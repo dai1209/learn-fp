@@ -199,12 +199,100 @@ commonPrefix (a:as) (b:bs) = if a == b
 longestCommonPrefix :: [String] -> String
 longestCommonPrefix = foldl1 commonPrefix
 
-{-
-  给你一个包含 n 个整数的数组 nums，判断 nums 中是否存在三个元素 a，b，c ，使得 a + b + c = 0 ？请你找出所有和为 0 且不重复的三元组。
-  注意：答案中不可以包含重复的三元组。
--}
--- 先排序， 
+
+toDigits :: Integer -> [Integer]
+toDigits n = if n <= 0 
+             then []
+             else (toDigits $ div n 10) ++ [n `mod` 10] 
+            --  else map (\x -> read [x]) (show n)
+
+toDigitsRev :: Integer -> [Integer]
+toDigitsRev = reverse . toDigits
+
+doubleEveryOther :: [Integer] -> [Integer]
+
+doubleEveryOther = reverse . workFunc . reverse
+
+workFunc [] = []
+workFunc [a] = [a]
+workFunc (a:b:ns) = a: (2*b) : (workFunc ns)
+
+sumList [] = 0
+sumList [a] = a
+sumList [a,b] = a + b
+
+sunDigits :: [Integer] -> Integer
+sunDigits = foldl (\a b ->  a + (sumList $ toDigits b)) 0
+
+validate :: Integer -> Bool
+validate = (\x -> mod x 10 == 0) . sunDigits . doubleEveryOther . toDigits 
 
 
 
+
+{- 汉诺塔 3柱问题求解 -}
+
+type Peg = String
+type Move = (Peg, Peg)
+hanoi :: Int -> Peg -> Peg -> Peg -> [Move]
+
+hanoi n a b c | n <= 0 = []
+              | n == 1 = [(a,c)]
+              | otherwise = hanoi (n - 1) a c b ++ hanoi 1 a b c ++ hanoi (n - 1) b a c
+
+{- 汉诺塔 当4柱时 问题求解 -}
+-- 先将n-2 个 转移到 1根柱上 剩下2个转移到 目标柱上 再将n-2个 转移至目标柱上  此方法所有移动都可以依靠多余的2根柱子 但受n-2 影响较大
+hanoi' :: Integer -> Peg -> Peg -> Peg -> Peg -> [Move]
+hanoi' n a b c d 
+  | n <= 0 = []
+  | n == 1 = [(a,d)]
+  | n == 2 = [(a,b),(a,d),(b,d)]
+  | n == 3 = [(a,b),(a,c),(a,d),(c,d),(b,d)]
+  | otherwise = hanoi' (n - 2) a b d c ++ hanoi' 2 a b c d ++ hanoi' (n - 2) c a b d
+
+-- 先将一部分转移到一根柱B上， 此次是 2 根中间柱， 
+-- 再将剩下的 转移至目标柱上 此次是 1根中间柱，
+-- 最后将B上的转移至目标柱上，此次是 2根中间柱
+
+countList = map (fst . countOfhanoi4) [0..]
+
+-- 利用公式计算最少步数时的 分堆方式
+countOfhanoi4 :: Int -> (Int,Int)
+countOfhanoi4 n | n <= 0 = (0,0)
+                | n == 1 = (1,0)
+                | n == 2 = (3,0)
+                | n == 3 = (5,0)
+                | otherwise = minimum' fst [(2 * (countList !! m) + ( 2 ^ (n - m) - 1) , m) | m <- [1 .. n - 1]]
+
+hanoi4 :: Int -> Peg -> Peg -> Peg -> Peg -> [Move]
+hanoi4 n a b c d 
+  | n <= 0 = []
+  | n == 1 = [(a,d)]
+  | n == 2 = [(a,b),(a,d),(b,d)]
+  | n == 3 = [(a,b),(a,c),(a,d),(c,d),(b,d)]
+  | otherwise = minimum' length [ hanoi4 m a c d b ++ hanoi (n - m) a c d ++ hanoi4 m b a c d | m <- [1 .. n - 1]]
+
+hanoi4' n = length $ hanoi4 n "A" "B" "C" "D" 
+
+minHanoi4 n a b c d 
+  | n <= 0 = []
+  | n == 1 = [(a,d)]
+  | n == 2 = [(a,b),(a,d),(b,d)]
+  | n == 3 = [(a,b),(a,c),(a,d),(c,d),(b,d)]
+  | otherwise = 
+    let m = snd $ countOfhanoi4 n 
+    in minHanoi4 m a c d b ++ hanoi (n - m) a c d ++ minHanoi4 m b a c d
+
+minBy :: Ord b => (a -> b) -> a -> a -> a
+-- minBy f [a] = a
+minBy f a b = if f a <= f b
+                 then a
+                 else b 
+minimum' :: Ord b => (a -> b) -> [a] -> a
+
+-- minimum' f [a] = a
+-- minimum' f [a,b] = min a b
+minimum' f = foldl1 $ minBy f
+
+-- minimum' f (a:b:xs) = let m = min (f a) (f b) in minimum' f (m:xs)
 
