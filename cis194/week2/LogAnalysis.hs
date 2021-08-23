@@ -57,7 +57,8 @@ getString (LogMessage _ _ string) = string
 getString (Unknown string) = string
 
 
-test :: IO()
+test :: IO ()
 test = do 
   s <- readFile "./sample.log"
   print $ whatWentWrong $ parse s 
+
